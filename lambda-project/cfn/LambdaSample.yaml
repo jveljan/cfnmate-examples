@@ -1,0 +1,42 @@
+Description: Lambda Sample.
+Parameters:
+  Env:
+    Type: String
+    Description: Name of an environment. 'dev', 'staging', 'prod' and any name.
+  Version:
+    Type: String
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: lambda-sample-${Env}
+      Description: LambdaFunction on nodejs 10.x
+      Runtime: nodejs10.x
+      Handler: index.handler
+      MemorySize: 128
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+          - LambdaRole
+          - Arn
+      Environment:
+        Variables:
+          ENV:
+            Fn::Sub: ${Env}
+          TZ: UTC

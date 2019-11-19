@@ -1,0 +1,15 @@
+Description: ECS bucket with namig scheme prefix-env
+Parameters:
+  Prefix:
+    Type: String
+  Env:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Prefix}-${Env}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: 
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256

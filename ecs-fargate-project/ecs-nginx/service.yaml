@@ -1,0 +1,92 @@
+Description: ECS service on a cluster
+Parameters:
+  Cluster:
+    Type: String
+  Env:
+    Type: String
+  DockerUrl:
+    Type: String
+  ServiceName:
+    Type: String
+  Subnets:
+    Description: Subnets
+    Type: CommaDelimitedList
+  AssignPublicIp:
+    Type: String
+    Default: "ENABLED"
+  VpcId:
+    Type: String
+Resources:
+  LogStream:
+    Type: "AWS::Logs::LogStream"
+    Properties: 
+      LogGroupName: !Sub "${Cluster}/${Env}"
+      LogStreamName: !Ref ServiceName
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ecs-tasks.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+  TaskDef:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      Family: !Sub "${ServiceName}-${Cluster}-${Env}"
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      NetworkMode: "awsvpc"
+      RequiresCompatibilities:
+        - "FARGATE"
+      ContainerDefinitions:
+        - 
+          Name: !Ref ServiceName
+          Image: !Ref DockerUrl
+          Cpu: 256
+          Memory: 512
+          Essential: true
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              "awslogs-group": !Sub "${Cluster}/${Env}"
+              "awslogs-region": !Ref "AWS::Region"
+              "awslogs-stream-prefix": !Ref ServiceName
+  Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: !Sub "sg-${ServiceName}-${Cluster}-${Env}"
+      SecurityGroupEgress: 
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 0
+          ToPort: 65535
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+      VpcId: !Ref VpcId
+  Service:
+    Type: "AWS::ECS::Service"
+    Properties:
+      Cluster: !Sub "${Cluster}-${Env}"
+      DesiredCount: 1
+      LaunchType: "FARGATE"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: !Ref AssignPublicIp
+          SecurityGroups: 
+            - !Ref Sg
+          Subnets: !Ref Subnets
+      ServiceName:
+        Ref: ServiceName
+      TaskDefinition: !Ref TaskDef

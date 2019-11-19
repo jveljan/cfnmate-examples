@@ -1,0 +1,16 @@
+Description: ECS cluster with LogGroup
+Parameters:
+  Name:
+    Type: String
+    Default: jojo
+  Env:
+    Type: String
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${Name}-${Env}"
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Sub "${Name}/${Env}"
