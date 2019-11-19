@@ -1,0 +1,1 @@
+# cfnmate-examples
